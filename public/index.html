@@ -356,7 +356,10 @@
 
 <header>
   <div class="brand">Tropilla Vinos — Pedidos</div>
-  <div class="date" id="today-date"></div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="date" id="today-date"></div>
+    <a href="/historial.html" style="color:rgba(255,255,255,0.8);font-size:13px;text-decoration:none;border:1px solid rgba(255,255,255,0.3);padding:4px 12px;border-radius:6px;">Historial</a>
+  </div>
 </header>
 
 <div class="container">
@@ -554,7 +557,7 @@
     hideError();
   }
 
-  function addOrder() {
+  async function addOrder() {
     const nombre = document.getElementById('f-nombre').value.trim();
     const direccion = document.getElementById('f-direccion').value.trim();
     const ciudad = document.getElementById('f-ciudad').value.trim();
@@ -567,14 +570,58 @@
       return;
     }
 
-    orders.push({ nombre, direccion, ciudad, telefono, fecha });
+    const order = { nombre, direccion, ciudad, telefono, fecha };
+
+    // Guardar en la base de datos
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order)
+      });
+      const json = await res.json();
+      if (json.success) order.id = json.data.id;
+    } catch (e) {
+      console.warn('No se pudo guardar en la base de datos:', e.message);
+    }
+
+    orders.push(order);
     renderOrders();
     clearForm();
   }
 
-  function removeOrder(index) {
+  async function removeOrder(index) {
+    const order = orders[index];
+    if (order.id) {
+      try {
+        await fetch(`/api/orders/${order.id}`, { method: 'DELETE' });
+      } catch (e) {
+        console.warn('No se pudo eliminar de la base de datos:', e.message);
+      }
+    }
     orders.splice(index, 1);
     renderOrders();
+  }
+
+  // Cargar pedidos del día al iniciar
+  async function loadTodayOrders() {
+    try {
+      const res = await fetch('/api/orders');
+      const json = await res.json();
+      if (json.success && json.data.length > 0) {
+        orders = json.data.map(o => ({
+          id: o.id,
+          nombre: o.nombre || '',
+          direccion: o.direccion || '',
+          ciudad: o.ciudad || '',
+          telefono: o.telefono || '',
+          fecha: o.fecha_salida || '',
+        }));
+        renderOrders();
+      }
+    } catch (e) {
+      console.warn('No se pudo cargar pedidos del día:', e.message);
+    }
   }
 
   function renderOrders() {
@@ -850,6 +897,9 @@
   document.getElementById('msg-input').addEventListener('keydown', e => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) extractData();
   });
+
+  // Cargar pedidos del día al iniciar
+  loadTodayOrders();
 </script>
 
 </body>

@@ -9,6 +9,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.0",
     "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.99.0",
     "dotenv": "^17.3.1",
     "express": "^4.18.2",
     "groq-sdk": "^0.37.0"

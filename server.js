@@ -2,13 +2,16 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const Groq = require('groq-sdk');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
+// ── EXTRAER DATOS DE WHATSAPP ────────────────────────────────
 app.post('/api/extract', async (req, res) => {
   const { message } = req.body;
   if (!message || !message.trim()) {
@@ -46,6 +49,57 @@ JSON:`;
     console.error('Groq error:', err.message);
     res.status(500).json({ error: 'Error al procesar el mensaje', detail: err.message });
   }
+});
+
+// ── GUARDAR PEDIDO ───────────────────────────────────────────
+app.post('/api/orders', async (req, res) => {
+  const { nombre, direccion, ciudad, telefono, fecha } = req.body;
+  const { data, error } = await supabase
+    .from('orders')
+    .insert([{
+      nombre: nombre || null,
+      direccion: direccion || null,
+      ciudad: ciudad || null,
+      telefono: telefono || null,
+      fecha_salida: fecha || null,
+    }])
+    .select();
+
+  if (error) {
+    console.error('Supabase insert error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ success: true, data: data[0] });
+});
+
+// ── OBTENER PEDIDOS POR FECHA ────────────────────────────────
+app.get('/api/orders', async (req, res) => {
+  const { fecha } = req.query;
+  const filtro = fecha || new Date().toISOString().slice(0, 10);
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('fecha_salida', filtro)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Supabase select error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ success: true, data });
+});
+
+// ── ELIMINAR PEDIDO ──────────────────────────────────────────
+app.delete('/api/orders/:id', async (req, res) => {
+  const { id } = req.params;
+  const { error } = await supabase.from('orders').delete().eq('id', id);
+
+  if (error) {
+    console.error('Supabase delete error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ success: true });
 });
 
 // Local dev
