@@ -76,6 +76,67 @@
     .empty .icon { font-size: 36px; margin-bottom: 10px; }
 
     .loading-row { text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px; }
+
+    .estado-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .estado-activo { background: #e8f5e9; color: #2e7d32; }
+    .estado-guardado { background: #e3f2fd; color: #1565c0; }
+
+    .btn-edit-sm {
+      background: none;
+      border: 1.5px solid var(--wine-border);
+      color: var(--wine);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-edit-sm:hover { background: var(--wine-pale); }
+
+    /* Modal de edición */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal {
+      background: white;
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 90%;
+      max-width: 480px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .modal h3 { color: var(--wine); margin-bottom: 16px; font-size: 16px; }
+    .modal .field-group { margin-bottom: 12px; }
+    .modal .field-group label {
+      display: block; font-size: 11px; font-weight: 600;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--wine); margin-bottom: 4px;
+    }
+    .modal .field-group input {
+      width: 100%; border: 1.5px solid var(--wine-border);
+      border-radius: 6px; padding: 9px 12px; font-size: 14px;
+      font-family: inherit; outline: none;
+    }
+    .modal .field-group input:focus { border-color: var(--wine); }
+    .modal .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+    .modal .btn-row .btn { flex: 1; }
+    .btn-success { background: #27ae60; color: white; }
+    .btn-success:hover { opacity: 0.85; }
+    .btn-secondary { background: var(--wine-pale); color: var(--wine); border: 1.5px solid var(--wine-border); }
+    .btn-secondary:hover { background: var(--wine-border); }
   </style>
 </head>
 <body>
@@ -107,6 +168,38 @@
   </div>
 </div>
 
+<!-- Modal de edición -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>Editar pedido</h3>
+    <input type="hidden" id="edit-id">
+    <div class="field-group">
+      <label>Nombre completo</label>
+      <input type="text" id="edit-nombre">
+    </div>
+    <div class="field-group">
+      <label>Dirección</label>
+      <input type="text" id="edit-direccion">
+    </div>
+    <div class="field-group">
+      <label>Ciudad</label>
+      <input type="text" id="edit-ciudad">
+    </div>
+    <div class="field-group">
+      <label>Celular</label>
+      <input type="tel" id="edit-telefono">
+    </div>
+    <div class="field-group">
+      <label>Fecha de salida</label>
+      <input type="date" id="edit-fecha">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="guardarEdicion()">Guardar</button>
+      <button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // Precargar con la fecha de hoy
   const hoy = new Date();
@@ -117,6 +210,8 @@
 
   cargarPedidos();
 
+  let pedidosCache = [];
+
   async function cargarPedidos() {
     const fecha = document.getElementById('fecha-filtro').value;
     if (!fecha) return;
@@ -124,15 +219,15 @@
     document.getElementById('tabla-container').innerHTML = '<div class="loading-row">Cargando...</div>';
 
     try {
-      const res = await fetch(`/api/orders?fecha=${fecha}`);
+      const res = await fetch(`/api/orders?fecha=${fecha}&estado=todos`);
       const json = await res.json();
 
       if (!json.success) throw new Error(json.error);
 
-      const pedidos = json.data;
-      document.getElementById('total-badge').textContent = pedidos.length;
+      pedidosCache = json.data;
+      document.getElementById('total-badge').textContent = pedidosCache.length;
 
-      if (pedidos.length === 0) {
+      if (pedidosCache.length === 0) {
         document.getElementById('tabla-container').innerHTML = `
           <div class="empty">
             <div class="icon">📭</div>
@@ -141,16 +236,21 @@
         return;
       }
 
-      const filas = pedidos.map((p, i) => `
+      const filas = pedidosCache.map((p, i) => {
+        const estadoClass = p.estado === 'guardado' ? 'estado-guardado' : 'estado-activo';
+        const estadoLabel = p.estado === 'guardado' ? 'Guardado' : 'Activo';
+        return `
         <tr>
           <td style="color:var(--text-muted);font-size:13px;">${i + 1}</td>
           <td><strong>${escHtml(p.nombre) || '—'}</strong></td>
           <td class="muted">${escHtml(p.direccion) || '—'}</td>
           <td class="muted">${escHtml(p.ciudad) || '—'}</td>
           <td class="muted">${escHtml(p.telefono) || '—'}</td>
+          <td><span class="estado-badge ${estadoClass}">${estadoLabel}</span></td>
           <td class="muted">${p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-        </tr>
-      `).join('');
+          <td><button class="btn-edit-sm" onclick="abrirEdicion(${i})">✏️ Editar</button></td>
+        </tr>`;
+      }).join('');
 
       document.getElementById('tabla-container').innerHTML = `
         <table>
@@ -161,7 +261,9 @@
               <th>Dirección</th>
               <th>Ciudad</th>
               <th>Celular</th>
+              <th>Estado</th>
               <th>Hora</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>${filas}</tbody>
@@ -170,6 +272,48 @@
     } catch (err) {
       document.getElementById('tabla-container').innerHTML = `
         <div class="empty">Error al cargar: ${err.message}</div>`;
+    }
+  }
+
+  function abrirEdicion(index) {
+    const p = pedidosCache[index];
+    if (!p) return;
+    document.getElementById('edit-id').value = p.id;
+    document.getElementById('edit-nombre').value = p.nombre || '';
+    document.getElementById('edit-direccion').value = p.direccion || '';
+    document.getElementById('edit-ciudad').value = p.ciudad || '';
+    document.getElementById('edit-telefono').value = p.telefono || '';
+    document.getElementById('edit-fecha').value = p.fecha_salida || '';
+    document.getElementById('edit-modal').classList.add('visible');
+  }
+
+  function cerrarModal() {
+    document.getElementById('edit-modal').classList.remove('visible');
+  }
+
+  async function guardarEdicion() {
+    const id = document.getElementById('edit-id').value;
+    const datos = {
+      nombre: document.getElementById('edit-nombre').value.trim(),
+      direccion: document.getElementById('edit-direccion').value.trim(),
+      ciudad: document.getElementById('edit-ciudad').value.trim(),
+      telefono: document.getElementById('edit-telefono').value.trim(),
+      fecha: document.getElementById('edit-fecha').value,
+    };
+
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      });
+      const json = await res.json();
+      if (json.success) {
+        cerrarModal();
+        cargarPedidos();
+      }
+    } catch (e) {
+      console.warn('Error al guardar:', e.message);
     }
   }
 

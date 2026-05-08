@@ -62,6 +62,7 @@ app.post('/api/orders', async (req, res) => {
       ciudad: ciudad || null,
       telefono: telefono || null,
       fecha_salida: fecha || null,
+      estado: 'activo',
     }])
     .select();
 
@@ -74,20 +75,69 @@ app.post('/api/orders', async (req, res) => {
 
 // ── OBTENER PEDIDOS POR FECHA ────────────────────────────────
 app.get('/api/orders', async (req, res) => {
-  const { fecha } = req.query;
+  const { fecha, estado } = req.query;
   const filtro = fecha || new Date().toISOString().slice(0, 10);
+  const filtroEstado = estado || 'activo';
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('orders')
     .select('*')
     .eq('fecha_salida', filtro)
     .order('created_at', { ascending: true });
+
+  if (filtroEstado !== 'todos') {
+    query = query.eq('estado', filtroEstado);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Supabase select error:', error.message);
     return res.status(500).json({ error: error.message });
   }
   res.json({ success: true, data });
+});
+
+// ── EDITAR PEDIDO ───────────────────────────────────────────
+app.put('/api/orders/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, direccion, ciudad, telefono, fecha } = req.body;
+  const { data, error } = await supabase
+    .from('orders')
+    .update({
+      nombre: nombre || null,
+      direccion: direccion || null,
+      ciudad: ciudad || null,
+      telefono: telefono || null,
+      fecha_salida: fecha || null,
+    })
+    .eq('id', id)
+    .select();
+
+  if (error) {
+    console.error('Supabase update error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ success: true, data: data[0] });
+});
+
+// ── ARCHIVAR PEDIDOS (guardar y limpiar) ────────────────────
+app.post('/api/orders/archivar', async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || ids.length === 0) {
+    return res.status(400).json({ error: 'No hay pedidos para archivar' });
+  }
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ estado: 'guardado' })
+    .in('id', ids);
+
+  if (error) {
+    console.error('Supabase archive error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ success: true });
 });
 
 // ── ELIMINAR PEDIDO ──────────────────────────────────────────

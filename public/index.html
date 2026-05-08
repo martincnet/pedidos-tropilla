@@ -350,6 +350,81 @@
     }
 
     .copy-success.visible { display: flex; }
+
+    .order-item.printed {
+      background: #f0f9f4;
+      border-color: #b2dfc4;
+    }
+
+    .order-item.editing {
+      background: #fff8e1;
+      border-color: #f0c040;
+      box-shadow: 0 0 0 2px rgba(240,192,64,0.3);
+    }
+
+    .printed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    .btn-danger {
+      background: none;
+      border: 1.5px solid #f5c0c0;
+      color: var(--red);
+      border-radius: var(--radius);
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn-danger:hover { background: #fff0f0; }
+    .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-edit {
+      background: none;
+      border: 1.5px solid var(--wine-border);
+      color: var(--wine);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-edit:hover { background: var(--wine-pale); }
+
+    .btn-save-all {
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn-save-all:hover { opacity: 0.85; }
+    .btn-save-all:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .editing-badge {
+      background: var(--wine);
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -387,6 +462,9 @@
           </button>
           <button class="btn btn-secondary" onclick="showManualForm()">
             Ingresar manual
+          </button>
+          <button class="btn btn-secondary" onclick="clearAll()" title="Limpiar texto">
+            ✕ Limpiar
           </button>
         </div>
 
@@ -456,6 +534,12 @@
           <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="exportWord()">
             Exportar a Word (.doc)
           </button>
+          <button class="btn-save-all" id="btn-save-all" onclick="archivarPedidos()">
+            💾 Guardar pedidos y limpiar pantalla
+          </button>
+          <button class="btn-danger" id="btn-clear-printed" onclick="clearPrinted()" disabled>
+            🗑️ Eliminar pedidos impresos (<span id="printed-count">0</span>)
+          </button>
           <div class="copy-success" id="copy-success">
             ✓ Copiado al portapapeles
           </div>
@@ -469,6 +553,7 @@
 
 <script>
   let orders = [];
+  let editingIndex = null; // índice del pedido que se está editando
 
   // Fecha de hoy
   const today = new Date();
@@ -536,13 +621,27 @@
   }
 
   function showManualForm() {
+    editingIndex = null;
     fillForm({ nombre: null, direccion: null, ciudad: null, telefono: null });
     showForm();
+    updateFormButtons();
     document.getElementById('f-nombre').focus();
   }
 
   function showForm() {
     document.getElementById('extracted-form').classList.add('visible');
+  }
+
+  function clearAll() {
+    document.getElementById('msg-input').value = '';
+    document.getElementById('extracted-form').classList.remove('visible');
+    ['nombre', 'direccion', 'ciudad', 'telefono'].forEach(f => {
+      const el = document.getElementById('f-' + f);
+      el.value = '';
+      el.classList.remove('missing');
+    });
+    document.getElementById('f-fecha').value = '';
+    hideError();
   }
 
   function clearForm() {
@@ -554,6 +653,8 @@
       el.classList.remove('missing');
     });
     document.getElementById('f-fecha').value = '';
+    editingIndex = null;
+    updateFormButtons();
     hideError();
   }
 
@@ -572,7 +673,34 @@
 
     const order = { nombre, direccion, ciudad, telefono, fecha };
 
-    // Guardar en la base de datos
+    // Modo edición: actualizar pedido existente
+    if (editingIndex !== null) {
+      const existing = orders[editingIndex];
+      order.id = existing.id;
+      order.printed = existing.printed;
+
+      if (order.id) {
+        try {
+          const res = await fetch(`/api/orders/${order.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(order)
+          });
+          const json = await res.json();
+          if (!json.success) console.warn('Error al actualizar:', json.error);
+        } catch (e) {
+          console.warn('No se pudo actualizar en la base de datos:', e.message);
+        }
+      }
+
+      orders[editingIndex] = order;
+      editingIndex = null;
+      renderOrders();
+      clearForm();
+      return;
+    }
+
+    // Modo agregar: crear pedido nuevo
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -588,6 +716,77 @@
     orders.push(order);
     renderOrders();
     clearForm();
+  }
+
+  function editOrder(index) {
+    const o = orders[index];
+    editingIndex = index;
+
+    document.getElementById('f-nombre').value = o.nombre || '';
+    document.getElementById('f-direccion').value = o.direccion || '';
+    document.getElementById('f-ciudad').value = o.ciudad || '';
+    document.getElementById('f-telefono').value = o.telefono || '';
+    document.getElementById('f-fecha').value = o.fecha || '';
+
+    ['nombre', 'direccion', 'ciudad', 'telefono'].forEach(f => {
+      document.getElementById('f-' + f).classList.remove('missing');
+    });
+
+    showForm();
+    updateFormButtons();
+    document.getElementById('f-nombre').focus();
+    renderOrders();
+  }
+
+  function cancelEdit() {
+    editingIndex = null;
+    clearForm();
+    renderOrders();
+  }
+
+  function updateFormButtons() {
+    const btnRow = document.querySelector('.extracted-form .btn-row');
+    if (editingIndex !== null) {
+      btnRow.innerHTML = `
+        <button class="btn btn-success" onclick="addOrder()">
+          ✓ Guardar cambios
+        </button>
+        <button class="btn btn-secondary" onclick="cancelEdit()">
+          Cancelar
+        </button>
+      `;
+    } else {
+      btnRow.innerHTML = `
+        <button class="btn btn-success" onclick="addOrder()">
+          + Agregar al listado
+        </button>
+        <button class="btn btn-secondary" onclick="clearForm()">
+          Limpiar
+        </button>
+      `;
+    }
+  }
+
+  async function archivarPedidos() {
+    const ids = orders.filter(o => o.id).map(o => o.id);
+    if (ids.length === 0) return;
+
+    try {
+      const res = await fetch('/api/orders/archivar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      const json = await res.json();
+      if (json.success) {
+        orders = [];
+        editingIndex = null;
+        renderOrders();
+        clearForm();
+      }
+    } catch (e) {
+      console.warn('No se pudo archivar los pedidos:', e.message);
+    }
   }
 
   async function removeOrder(index) {
@@ -645,21 +844,31 @@
     document.getElementById('copy-success').classList.remove('visible');
 
     list.innerHTML = orders.map((o, i) => `
-      <div class="order-item">
+      <div class="order-item${o.printed ? ' printed' : ''}${editingIndex === i ? ' editing' : ''}">
         <div class="order-number">${i + 1}</div>
         <div class="order-info">
-          <div class="order-name">${escHtml(o.nombre) || '—'}</div>
+          <div class="order-name">
+            ${escHtml(o.nombre) || '—'}
+            ${editingIndex === i ? ' <span class="editing-badge">Editando</span>' : ''}
+          </div>
           ${o.direccion ? `<div class="order-detail">📍 ${escHtml(o.direccion)}</div>` : ''}
           ${o.fecha ? `<div class="order-detail">📅 Sale ${formatFecha(o.fecha)}</div>` : ''}
           ${o.ciudad ? `<div class="order-detail">🏙️ ${escHtml(o.ciudad)}</div>` : ''}
           ${o.telefono ? `<div class="order-detail">📱 ${escHtml(o.telefono)}</div>` : ''}
+          ${o.printed ? `<div class="printed-badge">✓ Impreso</div>` : ''}
         </div>
         <div class="order-actions">
+          <button class="btn-edit" onclick="editOrder(${i})">✏️ Editar</button>
           <button class="btn-print" onclick="printLabel(${i})">🖨️ Etiqueta</button>
           <button class="btn-danger-sm" onclick="removeOrder(${i})" title="Eliminar">✕</button>
         </div>
       </div>
     `).join('');
+
+    // Actualizar botón limpiar impresos
+    const printedCount = orders.filter(o => o.printed).length;
+    document.getElementById('printed-count').textContent = printedCount;
+    document.getElementById('btn-clear-printed').disabled = printedCount === 0;
   }
 
   /* ── IMPRESIÓN DE ETIQUETAS ─────────────────────────────── */
@@ -684,11 +893,33 @@
     const o = orders[index];
     if (!o) return;
     openPrintWindow([o]);
+    orders[index].printed = true;
+    renderOrders();
   }
 
   function printAllLabels() {
     if (orders.length === 0) return;
     openPrintWindow(orders);
+    orders.forEach(o => o.printed = true);
+    renderOrders();
+  }
+
+  async function clearPrinted() {
+    const printed = orders.filter(o => o.printed);
+    if (printed.length === 0) return;
+
+    for (const o of printed) {
+      if (o.id) {
+        try {
+          await fetch(`/api/orders/${o.id}`, { method: 'DELETE' });
+        } catch (e) {
+          console.warn('No se pudo eliminar de la base de datos:', e.message);
+        }
+      }
+    }
+
+    orders = orders.filter(o => !o.printed);
+    renderOrders();
   }
 
   function openPrintWindow(orderList) {
