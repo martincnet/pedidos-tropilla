@@ -806,8 +806,9 @@
     pendingConfirmAction = null;
   }
   function confirmAction() {
+    const action = pendingConfirmAction;
     closeConfirm();
-    if (pendingConfirmAction) pendingConfirmAction();
+    if (action) action();
   }
 
   function confirmarArchivo() {
