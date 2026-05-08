@@ -4,146 +4,334 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Historial — Tropilla Pedidos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --wine: #6b2d3e;
+      --wine-dark: #522231;
       --wine-light: #9b4d5e;
       --wine-pale: #fdf0f2;
       --wine-border: #e8d5d8;
-      --text: #1a1a1a;
-      --text-muted: #777;
+      --text: #1e1e2e;
+      --text-secondary: #64647a;
+      --text-muted: #9c9cb0;
       --white: #fff;
-      --gray-bg: #f7f7f7;
-      --radius: 8px;
-      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --gray-bg: #f4f2f7;
+      --green: #16a34a;
+      --blue: #2563eb;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 16px rgba(107,45,62,0.08), 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-lg: 0 8px 32px rgba(107,45,62,0.12), 0 2px 6px rgba(0,0,0,0.06);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--gray-bg); color: var(--text); min-height: 100vh; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--gray-bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
 
     header {
-      background: var(--wine);
+      background: linear-gradient(135deg, var(--wine-dark) 0%, var(--wine) 50%, var(--wine-light) 100%);
       color: white;
-      padding: 16px 24px;
+      padding: 0 24px;
+      height: 60px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: sticky;
       top: 0;
       z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 20px rgba(107,45,62,0.25);
     }
-    header .brand { font-size: 18px; font-weight: 600; }
-    header a { color: rgba(255,255,255,0.8); font-size: 13px; text-decoration: none; border: 1px solid rgba(255,255,255,0.3); padding: 4px 12px; border-radius: 6px; }
-    header a:hover { background: rgba(255,255,255,0.1); }
+    header .brand { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+    header .nav-link {
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      backdrop-filter: blur(4px);
+      background: rgba(255,255,255,0.08);
+    }
+    header .nav-link:hover {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.4);
+      color: white;
+    }
 
-    .container { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+    .container { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
 
-    .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--wine-border); font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--wine); display: flex; align-items: center; gap: 12px; }
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid rgba(107,45,62,0.06);
+    }
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--wine-border);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--wine);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(180deg, rgba(253,240,242,0.5) 0%, transparent 100%);
+    }
     .card-body { padding: 20px; }
 
-    .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .filter-row label { font-size: 13px; font-weight: 600; color: var(--wine); }
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .filter-row label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
     .filter-row input[type="date"] {
-      border: 1.5px solid var(--wine-border);
-      border-radius: 6px;
-      padding: 8px 12px;
+      border: 1.5px solid #e0dce5;
+      border-radius: var(--radius-sm);
+      padding: 9px 14px;
       font-size: 14px;
       font-family: inherit;
       outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
     }
-    .filter-row input[type="date"]:focus { border-color: var(--wine); }
+    .filter-row input[type="date"]:focus {
+      border-color: var(--wine);
+      box-shadow: 0 0 0 3px rgba(107,45,62,0.1);
+    }
 
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 9px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500;
-      cursor: pointer; border: none; transition: opacity 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition);
+      font-family: inherit;
     }
-    .btn-primary { background: var(--wine); color: white; }
-    .btn-primary:hover { background: var(--wine-light); }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: var(--wine);
+      color: white;
+      box-shadow: 0 2px 8px rgba(107,45,62,0.2);
+    }
+    .btn-primary:hover {
+      background: var(--wine-dark);
+      box-shadow: 0 4px 12px rgba(107,45,62,0.3);
+    }
 
-    .badge { background: var(--wine); color: white; border-radius: 20px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+    .badge {
+      background: var(--wine);
+      color: white;
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 28px;
+      text-align: center;
+    }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-    thead tr { border-bottom: 2px solid var(--wine-border); }
-    th { padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--wine); }
-    tbody tr { border-bottom: 1px solid var(--wine-border); transition: background 0.1s; }
-    tbody tr:hover { background: var(--wine-pale); }
-    td { padding: 12px; font-size: 14px; vertical-align: top; }
-    td.muted { color: var(--text-muted); font-size: 13px; }
+    /* TABLE */
+    .table-wrapper { overflow-x: auto; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { border-bottom: 2px solid #e8e5ed; }
+    th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    tbody tr {
+      border-bottom: 1px solid #f0edf3;
+      transition: background var(--transition);
+    }
+    tbody tr:hover { background: rgba(107,45,62,0.02); }
+    td { padding: 12px; font-size: 14px; vertical-align: middle; }
+    td.muted { color: var(--text-secondary); font-size: 13px; }
+    td strong { font-weight: 600; color: var(--text); }
 
-    .empty { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 14px; }
-    .empty .icon { font-size: 36px; margin-bottom: 10px; }
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .empty .icon { font-size: 40px; margin-bottom: 12px; filter: grayscale(0.3); }
 
-    .loading-row { text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px; }
+    .loading-row {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
 
+    /* ESTADO BADGES */
     .estado-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
       font-size: 11px;
       font-weight: 600;
+      letter-spacing: 0.2px;
     }
-    .estado-activo { background: #e8f5e9; color: #2e7d32; }
-    .estado-guardado { background: #e3f2fd; color: #1565c0; }
+    .estado-activo { background: #dcfce7; color: #15803d; }
+    .estado-guardado { background: #dbeafe; color: #1d4ed8; }
 
+    /* EDIT BUTTON */
     .btn-edit-sm {
       background: none;
-      border: 1.5px solid var(--wine-border);
-      color: var(--wine);
-      border-radius: 6px;
-      padding: 3px 8px;
+      border: 1.5px solid #e0dce5;
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      padding: 5px 10px;
       font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: all var(--transition);
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-    .btn-edit-sm:hover { background: var(--wine-pale); }
+    .btn-edit-sm:hover {
+      background: var(--wine-pale);
+      border-color: var(--wine-border);
+      color: var(--wine);
+    }
 
-    /* Modal de edición */
+    /* MODAL */
     .modal-overlay {
       display: none;
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      inset: 0;
       background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
       z-index: 200;
       justify-content: center;
       align-items: center;
+      animation: fadeIn 0.15s ease-out;
     }
     .modal-overlay.visible { display: flex; }
     .modal {
       background: white;
       border-radius: var(--radius);
-      padding: 24px;
+      padding: 28px;
       width: 90%;
       max-width: 480px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      box-shadow: var(--shadow-lg);
+      animation: scaleIn 0.2s ease-out;
     }
-    .modal h3 { color: var(--wine); margin-bottom: 16px; font-size: 16px; }
-    .modal .field-group { margin-bottom: 12px; }
+    .modal h3 {
+      color: var(--wine);
+      margin-bottom: 20px;
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .modal .field-group { margin-bottom: 14px; }
     .modal .field-group label {
-      display: block; font-size: 11px; font-weight: 600;
-      letter-spacing: 1.5px; text-transform: uppercase;
-      color: var(--wine); margin-bottom: 4px;
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
     }
     .modal .field-group input {
-      width: 100%; border: 1.5px solid var(--wine-border);
-      border-radius: 6px; padding: 9px 12px; font-size: 14px;
-      font-family: inherit; outline: none;
+      width: 100%;
+      border: 1.5px solid #e0dce5;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
     }
-    .modal .field-group input:focus { border-color: var(--wine); }
-    .modal .btn-row { display: flex; gap: 10px; margin-top: 16px; }
-    .modal .btn-row .btn { flex: 1; }
-    .btn-success { background: #27ae60; color: white; }
-    .btn-success:hover { opacity: 0.85; }
-    .btn-secondary { background: var(--wine-pale); color: var(--wine); border: 1.5px solid var(--wine-border); }
-    .btn-secondary:hover { background: var(--wine-border); }
+    .modal .field-group input:focus {
+      border-color: var(--wine);
+      box-shadow: 0 0 0 3px rgba(107,45,62,0.1);
+    }
+    .modal .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+    .modal .btn-row .btn { flex: 1; padding: 10px 16px; }
+
+    .btn-success {
+      background: #16a34a;
+      color: white;
+      box-shadow: 0 2px 8px rgba(22,163,74,0.2);
+    }
+    .btn-success:hover {
+      background: #15803d;
+      box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+    }
+    .btn-secondary {
+      background: var(--white);
+      color: var(--text-secondary);
+      border: 1.5px solid #e0dce5;
+    }
+    .btn-secondary:hover {
+      background: var(--gray-bg);
+      border-color: #ccc8d0;
+      color: var(--text);
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--text);
+      color: white;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 500;
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #15803d; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
   </style>
 </head>
 <body>
 
 <header>
   <div class="brand">Tropilla Vinos — Historial</div>
-  <a href="/">← Volver</a>
+  <a href="/" class="nav-link">← Volver a pedidos</a>
 </header>
 
 <div class="container">
@@ -161,14 +349,14 @@
       </div>
 
       <div id="tabla-container">
-        <div class="loading-row">Seleccioná una fecha para ver los pedidos.</div>
+        <div class="loading-row">Selecciona una fecha para ver los pedidos.</div>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- Modal de edición -->
+<!-- Modal de edicion -->
 <div class="modal-overlay" id="edit-modal">
   <div class="modal">
     <h3>Editar pedido</h3>
@@ -178,30 +366,34 @@
       <input type="text" id="edit-nombre">
     </div>
     <div class="field-group">
-      <label>Dirección</label>
+      <label>Direccion</label>
       <input type="text" id="edit-direccion">
     </div>
-    <div class="field-group">
-      <label>Ciudad</label>
-      <input type="text" id="edit-ciudad">
-    </div>
-    <div class="field-group">
-      <label>Celular</label>
-      <input type="tel" id="edit-telefono">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="field-group">
+        <label>Ciudad</label>
+        <input type="text" id="edit-ciudad">
+      </div>
+      <div class="field-group">
+        <label>Celular</label>
+        <input type="tel" id="edit-telefono">
+      </div>
     </div>
     <div class="field-group">
       <label>Fecha de salida</label>
       <input type="date" id="edit-fecha">
     </div>
     <div class="btn-row">
-      <button class="btn btn-success" onclick="guardarEdicion()">Guardar</button>
+      <button class="btn btn-success" onclick="guardarEdicion()">Guardar cambios</button>
       <button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
     </div>
   </div>
 </div>
 
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <script>
-  // Precargar con la fecha de hoy
   const hoy = new Date();
   const yyyy = hoy.getFullYear();
   const mm = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -211,6 +403,14 @@
   cargarPedidos();
 
   let pedidosCache = [];
+
+  function showToast(msg, type = '') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast' + (type ? ' ' + type : '');
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 2800);
+  }
 
   async function cargarPedidos() {
     const fecha = document.getElementById('fecha-filtro').value;
@@ -241,7 +441,7 @@
         const estadoLabel = p.estado === 'guardado' ? 'Guardado' : 'Activo';
         return `
         <tr>
-          <td style="color:var(--text-muted);font-size:13px;">${i + 1}</td>
+          <td style="color:var(--text-muted);font-size:13px;font-weight:600;">${i + 1}</td>
           <td><strong>${escHtml(p.nombre) || '—'}</strong></td>
           <td class="muted">${escHtml(p.direccion) || '—'}</td>
           <td class="muted">${escHtml(p.ciudad) || '—'}</td>
@@ -253,21 +453,23 @@
       }).join('');
 
       document.getElementById('tabla-container').innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Nombre</th>
-              <th>Dirección</th>
-              <th>Ciudad</th>
-              <th>Celular</th>
-              <th>Estado</th>
-              <th>Hora</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>${filas}</tbody>
-        </table>`;
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Direccion</th>
+                <th>Ciudad</th>
+                <th>Celular</th>
+                <th>Estado</th>
+                <th>Hora</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>`;
 
     } catch (err) {
       document.getElementById('tabla-container').innerHTML = `
@@ -285,6 +487,7 @@
     document.getElementById('edit-telefono').value = p.telefono || '';
     document.getElementById('edit-fecha').value = p.fecha_salida || '';
     document.getElementById('edit-modal').classList.add('visible');
+    setTimeout(() => document.getElementById('edit-nombre').focus(), 100);
   }
 
   function cerrarModal() {
@@ -311,11 +514,22 @@
       if (json.success) {
         cerrarModal();
         cargarPedidos();
+        showToast('Pedido actualizado', 'success');
       }
     } catch (e) {
       console.warn('Error al guardar:', e.message);
     }
   }
+
+  // Cerrar modal con Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') cerrarModal();
+  });
+
+  // Cerrar modal haciendo click fuera
+  document.getElementById('edit-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('edit-modal')) cerrarModal();
+  });
 
   function escHtml(str) {
     if (!str) return '';
